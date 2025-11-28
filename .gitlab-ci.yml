@@ -1,7 +1,81 @@
-include:
-  - template: Auto-DevOps.gitlab-ci.yml
+stages:
+# ===============================
+#       Pipeline complète
+# ===============================
 
-variables:
-  SAST_EXCLUDED_PATHS: "frontend/src/assets/private/**"
-  TEST_DISABLED: "true"
-  DAST_DISABLED: "true"
+stages:
+  - install
+  - test
+  - test_performance
+  - deploy
+
+# ===============================
+#       Variables globales
+# ===============================
+image: node:18
+
+cache:
+  key: ${CI_PROJECT_ID}
+  paths:
+    - node_modules/
+
+# ===============================
+#       INSTALLATION
+# ===============================
+install_dependencies:
+  stage: install
+  script:
+    - echo "📦 Installing dependencies..."
+    - npm install
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 week
+
+# ===============================
+#          TEST UNITAIRES
+# ===============================
+unit_tests:
+  stage: test
+  script:
+    - echo "🧪 Running unit tests..."
+    - npm test
+  artifacts:
+    when: always
+    paths:
+      - test-results/
+      - coverage/
+    reports:
+      junit: test-results/junit.xml
+  needs: ["install_dependencies"]
+
+# ===============================
+#      TESTS DE PERFORMANCE
+# ===============================
+performance_tests:
+  stage: test_performance
+  script:
+    - echo "🔥 Running performance tests..."
+    # Exemple : artillery, adapter selon ton projet
+    - npm install -g artillery
+    - artillery run performance.yml -o perf-report.json
+  artifacts:
+    when: always
+    paths:
+      - perf-report.json
+  needs: ["install_dependencies"]
+
+# ===============================
+#          DÉPLOIEMENT
+# ===============================
+deploy_job:
+  stage: deploy
+  script:
+    - echo "🚀 Deploying application..."
+    - echo "Ici tu mets les commandes de déploiement (scp, rsync, ssh...)."
+  only:
+    - main
+    - master
+  needs: ["unit_tests", "performance_tests"]
+
+
