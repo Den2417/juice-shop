@@ -1,17 +1,9 @@
 stages:
-# ===============================
-#       Pipeline complète
-# ===============================
-
-stages:
   - install
   - test
   - test_performance
   - deploy
 
-# ===============================
-#       Variables globales
-# ===============================
 image: node:18
 
 cache:
@@ -19,9 +11,6 @@ cache:
   paths:
     - node_modules/
 
-# ===============================
-#       INSTALLATION
-# ===============================
 install_dependencies:
   stage: install
   script:
@@ -32,9 +21,6 @@ install_dependencies:
       - node_modules/
     expire_in: 1 week
 
-# ===============================
-#          TEST UNITAIRES
-# ===============================
 unit_tests:
   stage: test
   script:
@@ -47,27 +33,22 @@ unit_tests:
       - coverage/
     reports:
       junit: test-results/junit.xml
-  needs: ["install_dependencies"]
+  needs:
+    - install_dependencies
 
-# ===============================
-#      TESTS DE PERFORMANCE
-# ===============================
 performance_tests:
   stage: test_performance
   script:
     - echo "🔥 Running performance tests..."
-    # Exemple : artillery, adapter selon ton projet
     - npm install -g artillery
     - artillery run performance.yml -o perf-report.json
   artifacts:
     when: always
     paths:
       - perf-report.json
-  needs: ["install_dependencies"]
+  needs:
+    - install_dependencies
 
-# ===============================
-#          DÉPLOIEMENT
-# ===============================
 deploy_job:
   stage: deploy
   script:
@@ -76,6 +57,6 @@ deploy_job:
   only:
     - main
     - master
-  needs: ["unit_tests", "performance_tests"]
-
-
+  needs:
+    - unit_tests
+    - performance_tests
